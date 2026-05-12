@@ -1,0 +1,20 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Editor: VS Code
+.vscode/
+*.code-workspace
+
+# Editor: JetBrains (CLion, IntelliJ)
+.idea/
+*.iml
+
+# Editor: Vim/Neovim
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
