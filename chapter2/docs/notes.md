@@ -34,6 +34,74 @@ Hello there$   # \n が1つ → 正常
 $              # さらに $ がある場合は余分な \n が出力されている
 ```
 
+## Box<dyn std::error::Error>
+
+`type TestResult = Result<(), Box<dyn std::error::Error>>` の各部分の意味。
+
+- `Result<(), E>` — 成功か失敗かを表す型。`()` は成功時に返す値がないことを示す
+- `std::error::Error` — 標準ライブラリが定義するエラー型のトレイト（インターフェース）
+- `dyn std::error::Error` — 「このトレイトを実装した何らかの型」。具体的な型名を指定しない
+- `Box<...>` — `dyn` を使う型はコンパイル時にサイズが不定なためスタックに置けない。`Box` でヒープに置き、ポインタをスタックで持つ
+
+```
+スタック         ヒープ
+┌─────────┐     ┌──────────────────┐
+│ pointer ├────►│ 実際のデータ      │
+└─────────┘     └──────────────────┘
+```
+
+`Box<dyn std::error::Error>` にすることで、異なる種類のエラー型を `?` 演算子でまとめて返せる。
+
+## テストにおける2種類のエラー
+
+`dies_no_args` を例に、2種類のエラーを区別する。
+
+```rust
+fn dies_no_args() -> TestResult {
+    Command::cargo_bin("echor")?   // ② テストインフラのエラー
+        .assert()
+        .failure()                 // ① プログラムの終了コードの検証
+        .stderr(predicate::str::contains("USAGE"));
+    Ok(())
+}
+```
+
+**① プログラムの終了コード（テストが検証したいもの）**
+引数なしで `echor` を実行したとき、exit code が 0 以外になり stderr に "USAGE" が含まれることを `.assert()` で検証する。これはテスト対象プログラムの振る舞いの確認。
+
+**② テストインフラのエラー**
+`Command::cargo_bin("echor")` でバイナリが見つからないなど、テスト実行環境側の失敗。`?` で `Err` を返す。`TestResult` の `Box<dyn std::error::Error>` はこちらのために使われており、①とは無関係。
+
+`.assert().failure()` の検証が失敗した場合は `Result::Err` ではなく `panic` になる。
+
+**補足: `?` を `unwrap()` に変えた場合**
+どちらもテストインフラ側のエラーでテストを失敗させる点は同じだが、挙動が異なる。
+
+| | `?` | `unwrap()` |
+|---|---|---|
+| 失敗時の挙動 | `Err(e)` を返す | `panic!` する |
+| 返り値型 | `-> TestResult` が必要 | `-> ()` または省略でよい |
+| エラーメッセージ | テストフレームワークが整形して表示 | panic のスタックトレースが表示 |
+
+`runs()` や `hello1()` が `unwrap()` を使い返り値なしで書かれているのがその例。
+
+## 引数がない場合の main の動作
+
+`get_matches()` が引数を解析する時点で clap が処理を止める。
+
+```rust
+let matches = App::new("echor")
+    ...
+    .arg(
+        Arg::with_name("text")
+            .required(true)   // ← 必須引数
+            .min_values(1),
+    )
+    .get_matches();           // ← 引数がなければここでプロセス終了
+```
+
+`required(true)` の引数がない場合、clap は内部で `std::process::exit(1)` を呼び出し、その前に stderr へエラーメッセージと USAGE を出力する。`std::process::exit()` はその時点でプロセスを即座に終了させるため、以降の行は実行されない。
+
 ## print! と println! の違い
 
 | マクロ | 末尾の改行 |
