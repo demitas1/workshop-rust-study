@@ -30,5 +30,5 @@ fn main() {
     if omit_newline {
         ending = "";
     }
-    println!("{}{}", text.join(" "), ending);
+    print!("{}{}", text.join(" "), ending);
 }
