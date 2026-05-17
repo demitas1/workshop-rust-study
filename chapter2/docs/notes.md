@@ -19,6 +19,51 @@
 cargo doc --open
 ```
 
+## ドキュメントから型とメソッドを調べる
+
+### matches の型を調べる
+
+`src/main.rs` の `let matches = App::new(...).get_matches()` で型を明示する場合、`get_matches()` の戻り値型をドキュメントで確認する。
+
+`https://docs.rs/clap/2.33.0/clap/struct.App.html#method.get_matches`
+
+シグネチャに `fn get_matches(self) -> ArgMatches<'a>` と書かれており、戻り値型が `ArgMatches<'a>` とわかる。
+
+**補足: 型を明示する場合**
+`use clap::ArgMatches;` を追加した上で以下のどちらかで書ける。
+
+```rust
+let matches: ArgMatches = ...
+let matches: ArgMatches<'static> = ...
+```
+
+`'a` はライフタイムの名前で宣言が必要なため `main` 関数では使えない。`ArgMatches` と書いた場合はコンパイラが推論する。`'static` はプログラム全体にわたって有効なライフタイムを表す特別な名前で、宣言なしで使える。
+
+### メソッドを探して values_of_lossy を見つける
+
+`ArgMatches` のドキュメントページのメソッド一覧から `values_of_lossy` を見つけられる。複数の引数値を取得するメソッドで、戻り値型は `Option<Vec<String>>`。
+
+### メソッドの機能は src を読む
+
+ドキュメントの説明が薄い場合、各メソッドの右端にある `[src]` リンクからソースコードを直接読む。実装を読むことで動作を正確に把握できる。
+
+`values_of_lossy` のソースを読むと `.to_string_lossy().into_owned()` を呼んでいることがわかる。`into_owned()` が `Cow` を `String` に変換しているため、戻り値は `Cow` ではなく `Vec<String>` になっている。
+
+### 補足: value_of_lossy と Cow
+
+`value_of_lossy`（単数形）の戻り値は `Option<Cow<'a, str>>`。`Cow` は Copy on Write の略。
+
+内部では `to_string_lossy()` を呼んでおり、引数の UTF-8 の状態によって返す値が分岐する。
+
+| 引数の状態 | 返る Cow の種類 | 内容 |
+|---|---|---|
+| 有効な UTF-8 | `Cow::Borrowed(&str)` | 元データへの参照。コピーなし |
+| 無効バイトを含む | `Cow::Owned(String)` | 無効バイトを置換文字（`\u{FFFD}`）で埋めた新しい String |
+
+どちらのケースも呼び出し側は同じ型として扱える点が `Cow` の利点。
+
+`values_of_lossy`（複数形）は `.into_owned()` で `Cow` を `String` に統一してから `Vec` に集めるため、戻り値から `Cow` がなくなっている。`Borrowed` の場合も `into_owned()` で新たに `String` を確保する。
+
 ## cat -A で改行文字を確認する
 
 `cat -A` を使うと、改行文字 `\n` の位置が `$` として表示される。
