@@ -17,12 +17,18 @@ workshop-rust-study/
 │   └── echor/
 │       ├── src/
 │       └── tests/
+├── chapter3/
+│   ├── docs/
+│   └── catr/
+│       ├── src/
+│       └── tests/
 ```
 
 | ディレクトリ | 内容 |
 |---|---|
 | `chapter1/hello/` | hello world、`true` / `false` コマンド |
 | `chapter2/echor/` | `echo` コマンドの実装（clap 2.33） |
+| `chapter3/catr/` | `cat` コマンドの実装（clap 2.33） |
 
 各章の `docs/notes.md` に学習メモを残しています。
 
