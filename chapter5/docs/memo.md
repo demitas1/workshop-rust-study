@@ -56,3 +56,27 @@ fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
     }
 }
 ```
+
+## 5.3.2 (復習) パターンマッチ
+
+```
+match count(file) {
+    Ok(info) => {
+        println!("{:?}", info);
+    },
+    _ => {}
+}
+```
+
+**エラーに興味がない場合の省略記法 `if let`**
+
+```
+if let Ok(info) = count(file) {
+    println!("{:?}", info);
+}
+```
+
+**ココで `?` を使うとエラーの場合即座に終了し、次のファイルに実行が移らない**
+```
+println!("{:?}", count(file)?);
+```
