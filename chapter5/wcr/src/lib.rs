@@ -61,7 +61,8 @@ pub fn get_args() -> MyResult<Config> {
             .short("m")
             .long("chars")
             .help("Show character count")
-            .takes_value(false),
+            .takes_value(false)
+            .conflicts_with("bytes")
         )
         .get_matches();
 
@@ -71,9 +72,9 @@ pub fn get_args() -> MyResult<Config> {
     let chars = matches.is_present("chars");
 
     if [lines, words, bytes, chars].into_iter().all(|v| v == false) {
-        lines = false;
-        words = false;
-        bytes = false;
+        lines = true;
+        words = true;
+        bytes = true;
     }
 
     Ok(Config {
@@ -120,9 +121,17 @@ pub fn count(mut file: impl BufRead) -> MyResult<FileInfo> {
     })
 }
 
+fn format_field(value: usize, show: bool) -> String {
+    if show {
+        format!("{:>8}", value)
+    } else {
+        "".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{count, FileInfo};
+    use super::{count, format_field, FileInfo};
     use std::io::Cursor;
 
     #[test]
@@ -138,15 +147,34 @@ mod tests {
         };
         assert_eq!(info.unwrap(), expected);
     }
-}
 
+    #[test]
+    fn test_format_field() {
+        assert_eq!(format_field(1, false), "");
+        assert_eq!(format_field(3, true),  "       3");
+        assert_eq!(format_field(10, true), "      10");
+    }
+}
 
 pub fn run(config: Config) -> MyResult<()> {
     for filename in &config.files {
         match open(filename) {
             Err(err) => eprintln!("{}: {}", filename, err),
             Ok(file) => {
-                println!("{:?}", count(file)?);
+                if let Ok(info) = count(file) {
+                    println!(
+                        "{}{}{}{}{}",
+                        format_field(info.num_lines, config.lines),
+                        format_field(info.num_words, config.words),
+                        format_field(info.num_bytes, config.bytes),
+                        format_field(info.num_chars, config.chars),
+                        if filename == "-" {
+                            "".to_string()
+                        } else {
+                            format!(" {}", filename)
+                        }
+                    );
+                }
             }
         }
     }

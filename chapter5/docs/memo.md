@@ -59,7 +59,7 @@ fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
 
 ## 5.3.2 (復習) パターンマッチ
 
-```
+```rust
 match count(file) {
     Ok(info) => {
         println!("{:?}", info);
@@ -70,13 +70,117 @@ match count(file) {
 
 **エラーに興味がない場合の省略記法 `if let`**
 
-```
+```rust
 if let Ok(info) = count(file) {
     println!("{:?}", info);
 }
 ```
 
 **ココで `?` を使うとエラーの場合即座に終了し、次のファイルに実行が移らない**
-```
+```rust
 println!("{:?}", count(file)?);
 ```
+
+## 5.3.2 解答
+
+- **dies_chars_and_bytes()**
+
+```diff
+@@ -61,7 +61,8 @@ pub fn get_args() -> MyResult<Config> {
+             .short("m")
+             .long("chars")
+             .help("Show character count")
+-            .takes_value(false),
++            .takes_value(false)
++            .conflicts_with("bytes")
+         )
+         .get_matches();
+```
+
+- **skips_bad_file()**
+
+(`fn run()` で対処済み)
+
+- **empty**
+
+出力をフォーマットする
+
+```diff
+@@ -146,7 +147,15 @@ pub fn run(config: Config) -> MyResult<()> {
+         match open(filename) {
+             Err(err) => eprintln!("{}: {}", filename, err),
+             Ok(file) => {
+-                println!("{:?}", count(file)?);
++                if let Ok(info) = count(file) {
++                    println!(
++                        "{:>8}{:>8}{:>8} {}",
++                        info.num_lines,
++                        info.num_words,
++                        info.num_bytes,
++                        filename
++                    );
++                }
+             }
+         }
+     }
+```
+
+[フォーマットについて (Rust By Example)](https://doc.rust-jp.rs/rust-by-example-ja/hello/print.html)
+
+- **fox**
+
+(注)
+
+`fox` にマッチするテストが実行されるので、
+    `fox_bytes`
+    `fox_bytes_lines`
+    `fox_chars`
+    `fox_lines`
+    `fox_words`
+    `fox_words_bytes`
+    `fox_words_lines`
+すべてが実行される。
+
+`fox` のみを実行するには
+```bash
+cargo test fox -- --exact
+```
+
+`format_field()` を定義して出力を `config` で制御
+
+```diff
++fn format_field(value: usize, show: bool) -> String {
++    if show {
++        format!("{:>8}", value)
++    } else {
++        "".to_string()
++    }
++}
+```
+
+```diff
+         match open(filename) {
+             Err(err) => eprintln!("{}: {}", filename, err),
+             Ok(file) => {
+-                println!("{:?}", count(file)?);
++                if let Ok(info) = count(file) {
++                    println!(
++                        "{}{}{}{}{}",
++                        format_field(info.num_lines, config.lines),
++                        format_field(info.num_words, config.words),
++                        format_field(info.num_bytes, config.bytes),
++                        format_field(info.num_chars, config.chars),
++                        if filename == "-" {
++                            "".to_string()
++                        } else {
++                            format!(" {}", filename)
++                        }
++                    );
++                }
+             }
+         }
+```
+
+- **test_all**
+
+合計を計算し、複数入力のときだけ出力する。
