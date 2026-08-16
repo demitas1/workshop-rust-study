@@ -9,6 +9,7 @@ const PRG: &str = "wcr";
 const EMPTY: &str = "tests/inputs/empty.txt";
 const FOX: &str = "tests/inputs/fox.txt";
 const ATLAMAL: &str = "tests/inputs/atlamal.txt";
+const SPIDERSJ: &str = "tests/inputs/spidersj.txt";
 
 // --------------------------------------------------
 fn gen_bad_file() -> String {
@@ -164,6 +165,77 @@ fn atlamal_stdin() -> TestResult {
     let input = fs::read_to_string(ATLAMAL)?;
     let expected =
         fs::read_to_string("tests/expected/atlamal.txt.stdin.out")?;
+    Command::cargo_bin(PRG)?
+        .write_stdin(input)
+        .assert()
+        .stdout(expected);
+    Ok(())
+}
+
+// --------------------------------------------------
+// 空白を持たない日本語（小林一茶「隅の蜘蛛案じな煤はとらぬぞよ」）。
+// 単語を「空白文字で区切られた文字列」と定義するため、単語数は 1 となる。
+// 形態素単位の数え方はこのコマンドの責務としない。
+// またマルチバイト文字のみで構成されるため、バイト数 43 と文字数 15 が食い違う。
+#[test]
+fn spidersj() -> TestResult {
+    run(&[SPIDERSJ], "tests/expected/spidersj.txt.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_bytes() -> TestResult {
+    run(&["-c", SPIDERSJ], "tests/expected/spidersj.txt.c.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_chars() -> TestResult {
+    run(&["-m", SPIDERSJ], "tests/expected/spidersj.txt.m.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_words() -> TestResult {
+    run(&["-w", SPIDERSJ], "tests/expected/spidersj.txt.w.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_lines() -> TestResult {
+    run(&["-l", SPIDERSJ], "tests/expected/spidersj.txt.l.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_words_bytes() -> TestResult {
+    run(&["-w", "-c", SPIDERSJ], "tests/expected/spidersj.txt.wc.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_words_chars() -> TestResult {
+    run(&["-w", "-m", SPIDERSJ], "tests/expected/spidersj.txt.wm.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_words_lines() -> TestResult {
+    run(&["-w", "-l", SPIDERSJ], "tests/expected/spidersj.txt.wl.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_bytes_lines() -> TestResult {
+    run(&["-l", "-c", SPIDERSJ], "tests/expected/spidersj.txt.cl.out")
+}
+
+// --------------------------------------------------
+#[test]
+fn spidersj_stdin() -> TestResult {
+    let input = fs::read_to_string(SPIDERSJ)?;
+    let expected =
+        fs::read_to_string("tests/expected/spidersj.txt.stdin.out")?;
     Command::cargo_bin(PRG)?
         .write_stdin(input)
         .assert()
