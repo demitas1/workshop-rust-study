@@ -285,3 +285,85 @@ BSD版 `wc` ではUTF-8デコードをせず、バイト単位で文字を検査
 
 //(他のオプションについては同様なので省略)
 ```
+
+---
+## 5.5 まとめ
+
+### `str::split_whitespace`, `str::chars`
+
+これらはイテレータを返すメソッドで、実際に消費するメソッドがチェーンの後続にくるまで評価されない（遅延評価）。
+
+```rust
+// https://play.rust-lang.org で動作確認
+fn main() {
+    let cases = [
+        ("test 1", "ab cd e"),
+        ("test 2", "あいう　えお"),
+    ];
+
+    for (label, s) in cases {
+        let v: Vec<&str> = s.split_whitespace().collect();
+        println!("{:<10} count={}  {:?}", label, v.len(), v);
+    }
+
+    for (label, s) in cases {
+        let v: Vec<char> = s.chars().collect();
+        println!("{:<10} count={}  {:?}", label, v.len(), v);
+    }
+}
+```
+
+### `Iterator::count`
+
+- `count()`, `collect()` はイテレータを実際に消費するメソッド。
+
+- `count()` は要素を数えながら捨てていくので `Vec<T>` を作る `collect()` よりも数を数えるだけなら効率が良い。
+
+```rust
+let v: Vec<&str> = s.split_whitespace().collect();
+let n_words = v.len();
+
+let n = s.split_whitespace().count();
+```
+
+### super
+
+親モジュールを参照するのに使う。
+
+### #[cfg(test)]
+
+条件付きコンパイル。
+
+他の例として
+```rustc
+#[cfg(target_os = "linux")]
+fn func1() {
+    // linux用のコード
+}
+
+#[cfg(target_os = "macos")]
+fn func1() {
+    // macos用のコード
+}
+```
+
+### std::io::Cursor
+
+```rust
+pub fn count(mut file: impl BufRead) -> MyResult<FileInfo>
+```
+をテストするために毎回テスト用の一時ファイルを作成するのは面倒。
+
+Cursor を使ってメモリ上のバッファをファイルハンドルのように使うことができる。
+
+**ファイル版:**
+
+```text
+File --[BufReader]--> BufRead  // ディスクI/Oあり
+```
+
+**テスト版:**
+
+```text
+&str --[Cursor]--> BufRead  // メモリ上だけ
+```
